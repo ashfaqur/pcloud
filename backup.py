@@ -1,9 +1,11 @@
 import json
-
+import shutil
 import os
 import datetime
 
-from pcloud import PyCloud
+from pcloud import PyCloud  # type: ignore
+
+paths: list[str] = []
 
 
 def main() -> None:
@@ -63,6 +65,23 @@ def main() -> None:
 
     print(f"JSON data has been saved to {file_path}")
 
+    for path in paths:
+        # print(f"Path is {path}")
+        localFilePath = path.replace("/Documents/", localpath)
+        # print(f"Local file path is {localFilePath}")
+
+        if not os.path.exists(localFilePath):
+            # print(f"File does not exist: {localFilePath}")
+            directory = os.path.dirname(localFilePath)
+            if not os.path.exists(directory):
+                print(f"Creating directory: {directory}")
+                os.makedirs(directory)
+            newPath = path.replace("/Documents/", "/home/ash/pCloudDrive/Documents/")
+            print(newPath)
+            print(localFilePath)
+            shutil.copyfile(newPath, localFilePath)
+            # print(f"Result: {code}")
+
 
 def print_contents(contents, parent):
     for item in contents:
@@ -74,7 +93,8 @@ def print_contents(contents, parent):
                 print_contents(item.get("contents"), path)
         else:
             path = parent + "/" + item.get("name")
-            print(f"File: {path}")
+            paths.append(path)
+            # print(f"File: {path}")
 
 
 def get_folder_modification_date(folder_path):
