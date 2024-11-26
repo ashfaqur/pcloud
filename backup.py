@@ -1,5 +1,4 @@
 import logging
-import json
 import shutil
 import subprocess
 import os
@@ -9,26 +8,8 @@ from argparse import ArgumentParser
 
 logger = logging.getLogger(__name__)
 
-INPUT_FILE = "env/input.json"
-CLOUD_PATH = "cloudpath"
-LOCAL_PATH = "localpath"
-
-paths: list[str] = []
-
-
-def validate_input(source: str, destination: str):
-    if not source:
-        raise Exception("The 'cloudpath' field does not exist.")
-    if not os.path.exists(source):
-        raise Exception(f"The cloudpath '{source}' does not exist")
-    if not destination:
-        raise Exception("The 'localpath' field does not exist.")
-    if not os.path.exists(destination):
-        raise Exception(f"The localpath '{destination}' does not exist")
-
 
 def main(source: str, destination: str) -> None:
-
     files_skipped = 0
     files_copied = 0
     # Walk through the directory tree
@@ -47,6 +28,8 @@ def main(source: str, destination: str) -> None:
                 os.makedirs(destination_dir)
             if not os.path.exists(destination_path):
                 logger.debug(f"Copying to {destination_path}")
+                file_size = os.path.getsize(absolute_path)
+                logger.debug(f"  File Size: {file_size / (1024 * 1024):.2f} MB")
                 shutil.copyfile(absolute_path, destination_path)
                 files_copied += 1
             else:
@@ -55,8 +38,8 @@ def main(source: str, destination: str) -> None:
     logger.info("Summary:")
     logger.info(f"Files copied: {files_copied}")
     logger.info(f"Files skipped: {files_skipped}")
-
-    run_git_commands(destination, "update")
+    if files_copied > 0:
+        run_git_commands(destination, "update")
 
 
 def run_git_commands(git_repo: str, commit_message: str):
@@ -69,7 +52,7 @@ def run_git_commands(git_repo: str, commit_message: str):
             text=True,
         )
         if not result.stdout.strip():
-            print("No changes to commit. Working tree is clean.")
+            logger.info("No changes to commit. Working tree is clean.")
             return
         subprocess.run(["git", "add", "."], check=True)
         subprocess.run(["git", "commit", "-m", commit_message], check=True)
@@ -98,7 +81,7 @@ def args_parser() -> ArgumentParser:
     arg_parser.add_argument(
         "-v", "--verbose", action="store_true", help="Set the log level to DEBUG"
     )
-    arg_parser.add_argument("-l", "--log", type=str, help="Path to log file")
+    arg_parser.add_argument("-l", "--log_dir", type=str, help="Path to log directory")
     return arg_parser
 
 
@@ -106,9 +89,11 @@ def setup_logging(args):
     log_level = logging.INFO
     if args.verbose:
         log_level = logging.DEBUG
-    if args.log:
+    if args.log_dir and os.path.exists(args.log_dir):
+        log_file_name = f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
+        log_file_path = os.path.join(args.log_dir, log_file_name)
         logging.basicConfig(
-            filename=args.log,
+            filename=log_file_path,
             format="%(asctime)s %(levelname)-8s %(message)s",
             level=log_level,
             datefmt="%H:%M:%S",
@@ -119,6 +104,13 @@ def setup_logging(args):
             level=log_level,
             datefmt="%H:%M:%S",
         )
+
+
+def validate_input(source: str, destination: str):
+    if not os.path.exists(source):
+        raise FileNotFoundError(f"The cloudpath '{source}' does not exist")
+    if not os.path.exists(destination):
+        raise FileNotFoundError(f"The localpath '{destination}' does not exist")
 
 
 if __name__ == "__main__":
