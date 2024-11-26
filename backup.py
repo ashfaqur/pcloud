@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 
 
 def main(source: str, destination: str) -> None:
+    """
+    Copies files from a cloud storage to a local storage.
+
+    :param source: The path to the cloud storage source
+    :type source: str
+    :param destination: The path to the local storage destination
+    :type destination: str
+    """
     files_skipped = 0
     files_copied = 0
     # Walk through the directory tree
@@ -42,7 +50,15 @@ def main(source: str, destination: str) -> None:
         run_git_commands(destination, "update")
 
 
-def run_git_commands(git_repo: str, commit_message: str):
+def run_git_commands(git_repo: str, commit_message: str) -> None:
+    """
+    Runs a sequence of Git commands to stage and commit all changes in a repository.
+
+    :param git_repo: The path to the Git repository
+    :type git_repo: str
+    :param commit_message: The commit message to use
+    :type commit_message: str
+    """
     try:
         os.chdir(git_repo)
         result = subprocess.run(
@@ -85,7 +101,17 @@ def args_parser() -> ArgumentParser:
     return arg_parser
 
 
-def setup_logging(args):
+def setup_logging(args) -> None:
+    """
+    Sets up logging based on the provided command line arguments.
+
+    If the verbose flag is set, the log level is set to DEBUG, otherwise it is set to INFO.
+    If a log directory is specified and it exists, the log is written to a file in that directory,
+    otherwise the log is written to the console.
+
+    :param args: The parsed command line arguments
+    :type args: ArgumentParser
+    """
     log_level = logging.INFO
     if args.verbose:
         log_level = logging.DEBUG
@@ -106,7 +132,7 @@ def setup_logging(args):
         )
 
 
-def validate_input(source: str, destination: str):
+def validate_input(source: str, destination: str) -> None:
     if not os.path.exists(source):
         raise FileNotFoundError(f"The cloudpath '{source}' does not exist")
     if not os.path.exists(destination):
